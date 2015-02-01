@@ -96,9 +96,8 @@ for i = 1, MAX_COMBO_POINTS do
 	bar.comboPoints[i] = comboPoint
 end
 
-bar.border = bar:NewTexture("BORDER", 1, "bar_borders.tga")
-bar.capLeft = bar:NewTexture("BORDER", 2, "bar_left_cap.tga")
-bar.capRight = bar:NewTexture("BORDER", 2, "bar_right_cap.tga")
+bar.capLeft = bar:NewTexture("BORDER", 1, "bar_left_cap.tga")
+bar.capRight = bar:NewTexture("BORDER", 1, "bar_right_cap.tga")
 
 local glow = bar:NewFrame("Frame")
 glow.border = glow:NewTexture("BORDER", 1, "glow_borders.tga")
@@ -124,7 +123,6 @@ function bar:ClearAnchors()
 		comboPoint:ClearAllPoints()
 	end
 	
-	self.border:ClearAllPoints()
 	self.capLeft:ClearAllPoints()
 	self.capRight:ClearAllPoints()
 	
@@ -145,8 +143,7 @@ function bar:SetHorizontal()
 	local capLeft = self.capLeft:AnchorSideHorizontal("LEFT", 32)
 	local capRight = self.capRight:AnchorSideHorizontal("RIGHT", 32)
 	
-	self.background:AnchorBetweenHorizontal(capLeft, capRight, 0, 8)
-	self.border:AnchorBetweenHorizontal(capLeft, capRight, 0, 0)
+	self.background:AnchorBetweenHorizontal(capLeft, capRight, 0, 0)
 	
 	local glow = self.glow:AnchorBetweenHorizontal(capLeft, capRight, 0, 8)
 	local glowCapLeft = glow.capLeft:AnchorSideHorizontal("LEFT", 16)
