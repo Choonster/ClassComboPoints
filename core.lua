@@ -21,7 +21,7 @@ local CAPS_WIDTH = 64
 -- Region Methods --
 --------------------
 
--- Copies all values from methods into object. Returns object for convenience.
+-- Copy all values from methods into object. Returns object for convenience.
 local function CopyMethods(methods, object)
 	for name, func in pairs(methods) do
 		object[name] = func
@@ -34,7 +34,7 @@ local Region = {}
 
 -- Anchor methods return self to allow easy method chaining
 
--- Sets all four points of the region to the corresponding points of its parent with an x and y offset.
+-- Set all four points of the region to the corresponding points of its parent with an x and y offset.
 -- Positive values of x and y will anchor the region inside the parent, negative values will anchor it outside the parent.
 function Region:AnchorToParent(x, y)
 	self:SetPoint("TOPLEFT", x, -y)
@@ -205,6 +205,7 @@ end
 --- Layout ----
 ---------------
 
+-- Clear all anchor points of each of the bar's elements
 function bar:ClearAnchors()
 	for texture, _ in pairs(self.allTextures) do
 		texture:ClearAllPoints()
@@ -214,17 +215,22 @@ function bar:ClearAnchors()
 	self.separators:ClearAllPoints()
 end
 
+-- Clear all anchors of the combo points
 function bar:ClearComboPointAnchors()
 	for _, comboPoint in ipairs(self.comboPoints) do
 		comboPoint:ClearAllPoints()
 	end
 end
 
+-- Is the bar in horizontal mode?
 function bar:IsHorizontal()
 	return self.isHorizontal
 end
 
+-- Reanchor the combo points based on the bar's current mode and the player's current maximum combo points.
 function bar:AnchorComboPoints()
+	self:ClearComboPointAnchors()
+	
 	if self:IsHorizontal() then
 		self:AnchorComboPointsHorizontal()
 	else
@@ -232,6 +238,7 @@ function bar:AnchorComboPoints()
 	end
 end
 
+-- Update the width/height of the combo points based on the bar's width/height
 function bar:UpdateComboPointDimensions()
 	local maxComboPoints = ClassComboPoints:GetMaxComboPoints()
 	if maxComboPoints == 0 then return end
@@ -253,7 +260,9 @@ function bar:UpdateComboPointDimensions()
 	end
 end
 
+-- Set the bar to horizontal mode and reanchor all elements appropriately.
 function bar:SetHorizontal()
+	self:ClearAnchors()
 	self.isHorizontal = true
 	
 	self:SetSize(256 + CAPS_WIDTH, 32)
@@ -274,6 +283,7 @@ function bar:SetHorizontal()
 	self:AnchorComboPointsHorizontal()
 end
 
+-- Anchor the combo points in horizontal mode based on the player's current maximum combo points.
 function bar:AnchorComboPointsHorizontal()
 	local maxComboPoints = ClassComboPoints:GetMaxComboPoints()
 	if maxComboPoints == 0 then return end
@@ -302,7 +312,9 @@ function bar:AnchorComboPointsHorizontal()
 	comboPoints[maxComboPoints]:AnchorSideToOppositeSideHorizontal("RIGHT", self.capRight, comboPointWidth, 0, 8)
 end
 
+-- Set the bar to vertical mode and reanchor all elements appropriately.
 function bar:SetVertical()
+	self:ClearAnchors()
 	self.isHorizontal = false
 	
 	self:SetSize(32, 256 + CAPS_WIDTH)
@@ -323,7 +335,8 @@ function bar:SetVertical()
 	
 	self:AnchorComboPointsVertical()
 end
-	
+
+-- Anchor the combo points in vertical mode based on the player's current maximum combo points.
 function bar:AnchorComboPointsVertical()
 	local maxComboPoints = ClassComboPoints:GetMaxComboPoints()
 	if maxComboPoints == 0 then return end
@@ -352,6 +365,7 @@ function bar:AnchorComboPointsVertical()
 	comboPoints[maxComboPoints]:AnchorSideToOppositeSideVertical("TOP", self.capRight, comboPointHeight, 8, 0)
 end
 
+-- Update the texture of the combo points based on the player's vehicle or class.
 function bar:UpdateComboPointFill()
 	local inVehicle = ClassComboPoints:IsInVehicle()
 	local comboPoints = self.comboPoints
@@ -360,6 +374,7 @@ function bar:UpdateComboPointFill()
 	end
 end
 
+-- Update the visibility of the combo points based on the player's current number of combo points.
 function bar:UpdateComboPointVisibility()
 	local currentComboPoints = ClassComboPoints:GetCurrentComboPoints()
 	local comboPoints = self.comboPoints
