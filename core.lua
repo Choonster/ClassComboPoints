@@ -1,3 +1,5 @@
+local ADDON, ClassComboPoints = ...
+
 ---------------
 -- Constants --
 ---------------
@@ -22,7 +24,7 @@ local Region = {}
 
 -- Anchor methods return self to allow easy method chaining
 
--- Sets all four points of the region to the corresponding points of its parent with an x- and y-offset.
+-- Sets all four points of the region to the corresponding points of its parent with an x and y offset.
 -- Positive values of x and y will anchor the region inside the parent, negative values will anchor it outside the parent.
 function Region:AnchorToParent(x, y)
 	self:SetPoint("TOPLEFT", x, -y)
@@ -44,10 +46,32 @@ function Region:AnchorBetweenHorizontal(left, right, x, y)
 	return self
 end
 
--- Anchor the region horizontally to one side of its parent and set its width
-function Region:AnchorSideHorizontal(side, width)
-	self:SetPoint("TOP" .. side)
-	self:SetPoint("BOTTOM" .. side)
+-- Anchor one side of the region horizontally to the same side of its parent and set its width
+function Region:AnchorSideToParentHorizontal(side, width)
+	return self:AnchorSideToSameSideHorizontal(self:GetParent(), side, width, 0, 0)
+end
+
+-- Anchor one side of the region horizontally to the same side of another region with the specified x and y offsets and set its width.
+-- Positive values of x will anchor the region to the right of the other region, negative values will anchor it to the left.
+-- Positive values of y will anchor the region within the other region, negative values will anchor it outside.
+function Region:AnchorSideToSameSideHorizontal(region, side, width, x, y)
+	local top, bottom = "TOP" .. side, "BOTTOM" .. side
+	
+	self:SetPoint(top, region, top, x, -y)
+	self:SetPoint(bottom, region, bottom, x, y)
+	self:SetWidth(width)
+	
+	return self
+end
+
+-- Anchor the region horizontally to one side of another region with the specified x and y offsets and set its width.
+-- Positive values of x will anchor the region to the right of the other region, negative values will anchor it to the left.
+-- Positive values of y will anchor the region within the other region, negative values will anchor it outside.
+function Region:AnchorSideToOppositeSideHorizontal(region, side, width, x, y)
+	local oppositeSide = side == "LEFT" and "RIGHT" or "LEFT"
+	
+	self:SetPoint("TOP" .. side, region, "TOP" .. oppositeSide, x, -y)
+	self:SetPoint("BOTTOM" .. side, region, "BOTTOM" .. oppositeSide, x, y)
 	self:SetWidth(width)
 	
 	return self
@@ -83,7 +107,7 @@ end
 ---------------
 -- We only create the bar elements here, we anchor them in the horizontal/vertical layout functions
 
-local bar = CreateFrame("Frame", "ClassComboPoints", UIParent)
+local bar = CreateFrame("Frame", "ClassComboPointsBar", UIParent)
 bar:SetFrameStrata("HIGH")
 CopyMethods(Frame, bar)
 
@@ -119,9 +143,7 @@ end
 function bar:ClearAnchors()
 	self.background:ClearAllPoints()
 	
-	for _, comboPoint in ipairs(self.comboPoints) do
-		comboPoint:ClearAllPoints()
-	end
+	self:ClearComboPointAnchors()
 	
 	self.capLeft:ClearAllPoints()
 	self.capRight:ClearAllPoints()
@@ -137,18 +159,83 @@ function bar:ClearAnchors()
 	self.separators:ClearAllPoints()
 end
 
+function bar:ClearComboPointAnchors()
+	for _, comboPoint in ipairs(self.comboPoints) do
+		comboPoint:ClearAllPoints()
+	end
+end
+
+function bar:AnchorComboPoints()
+	if self.isHorizontal then
+		self:AnchorComboPointsHorizontal()
+	else
+		self:AnchorComboPointsVertical()
+	end
+end
+
+function bar:UpdateComboPointDimensions()
+	local maxComboPoints = ClassComboPoints:GetMaxComboPoints()
+	if maxComboPoints == 0 then return end
+	
+	local comboPoints = self.comboPoints
+	
+	if self.isHorizontal then
+		local comboPointWidth = (self:GetWidth() - 64) / maxComboPoints
+		
+		for i = 1, maxComboPoints do
+			comboPoints[i]:SetWidth(comboPointWidth)
+		end
+	else
+		local comboPointHeight = (self:GetHeight() - 64) / maxComboPoints
+		
+		for i = 1, maxComboPoints do
+			comboPoints[i]:SetHeight(comboPointHeight)
+		end
+	end
+end
+
 function bar:SetHorizontal()
+	self.isHorizontal = true
+	
 	self:SetSize(256 + 32 * 2, 32)
 	
-	local capLeft = self.capLeft:AnchorSideHorizontal("LEFT", 32)
-	local capRight = self.capRight:AnchorSideHorizontal("RIGHT", 32)
-	
+	local capLeft = self.capLeft:AnchorSideToParentHorizontal("LEFT", 32)
+	local capRight = self.capRight:AnchorSideToParentHorizontal("RIGHT", 32)
 	self.background:AnchorBetweenHorizontal(capLeft, capRight, 0, 0)
 	
 	local glow = self.glow:AnchorBetweenHorizontal(capLeft, capRight, 0, 8)
-	local glowCapLeft = glow.capLeft:AnchorSideHorizontal("LEFT", 16)
-	local glowCapRight = glow.capRight:AnchorSideHorizontal("RIGHT", 16)
+	local glowCapLeft = glow.capLeft:AnchorSideToParentHorizontal("LEFT", 16)
+	local glowCapRight = glow.capRight:AnchorSideToParentHorizontal("RIGHT", 16)
 	glow.border:AnchorBetweenHorizontal(glowCapLeft, glowCapRight, 0, 0)
 	
-	
+	self:AnchorComboPointsHorizontal()
 end
+
+function bar:AnchorComboPointsHorizontal()
+	local maxComboPoints = ClassComboPoints:GetMaxComboPoints()
+	if maxComboPoints == 0 then return end
+	
+	local comboPoints, separators = self.comboPoints, self.separators
+	
+	local comboPointWidth = (self:GetWidth() - 64) / maxComboPoints
+	
+	for i = 1, maxComboPoints do
+		local comboPoint = comboPoints[i]
+		local separator = separators[i]
+		
+		local anchor, yOffset
+		if i == 1 then
+			anchor, yOffset = self.capLeft, 8
+		else
+			anchor, yOffset = comboPoints[i - 1], 0
+		end
+		comboPoint:AnchorSideToOppositeSideHorizontal("LEFT", anchor, comboPointWidth, 0, yOffset)
+		
+		if i < maxComboPoints then
+			separator:AnchorSideToOppositeSideHorizontal("LEFT", comboPoint, 32, -16, 0)
+		end
+	end
+	
+	comboPoints[maxComboPoints]:AnchorSideToOppositeSideHorizontal("RIGHT", self.capRight, comboPointWidth, 0, 8)
+end
+
