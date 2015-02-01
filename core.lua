@@ -17,6 +17,8 @@ local NINETY_DEGREES_IN_RADIANS = 0.5 * math.pi
 -- The width of the left and right caps of the bar (or their height in vertical mode)
 local CAPS_WIDTH = 64
 
+ClassComboPoints.CLASS, ClassComboPoints.MAX_COMBO_POINTS = CLASS, MAX_COMBO_POINTS
+
 --------------------
 -- Region Methods --
 --------------------
@@ -172,6 +174,7 @@ end
 -- We only create the bar elements here, we anchor them in the horizontal/vertical layout functions
 
 local bar = CreateFrame("Frame", "ClassComboPointsBar", UIParent)
+ClassComboPoints.bar = bar
 bar.allTextures = {}
 bar:SetFrameStrata("HIGH")
 CopyMethods(Frame, bar)
