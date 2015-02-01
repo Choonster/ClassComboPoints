@@ -9,6 +9,7 @@ local BASE_TEXTURE_PATH = [[Interface\AddOns\ClassComboPoints\Textures\]]
 local BAR_FILL_CLASS = ("bar_fill_%s.tga"):format(CLASS:lower())
 local BAR_FILL_VEHICLE = "bar_fill_rogue.tga"
 
+-- The maximum number of combo points of any class/spec. May not be the maximum number of combo points for the current class/spec.
 local MAX_COMBO_POINTS = 5
 
 local NINETY_DEGREES_IN_RADIANS = 0.5 * math.pi
@@ -349,4 +350,20 @@ function bar:AnchorComboPointsVertical()
 	end
 	
 	comboPoints[maxComboPoints]:AnchorSideToOppositeSideVertical("TOP", self.capRight, comboPointHeight, 8, 0)
+end
+
+function bar:UpdateComboPointFill()
+	local inVehicle = ClassComboPoints:IsInVehicle()
+	local comboPoints = self.comboPoints
+	for i = 1, MAX_COMBO_POINTS do
+		comboPoints[i]:SetTexture(BASE_TEXTURE_PATH .. (inVehicle and BAR_FILL_VEHICLE or BAR_FILL_CLASS))
+	end
+end
+
+function bar:UpdateComboPointVisibility()
+	local currentComboPoints = ClassComboPoints:GetCurrentComboPoints()
+	local comboPoints = self.comboPoints
+	for i = 1, MAX_COMBO_POINTS do
+		comboPoints[i]:SetShown(i <= currentComboPoints)
+	end
 end
