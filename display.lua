@@ -62,13 +62,13 @@ end
 
 -- Anchor one side of the region horizontally to the same side of its parent and set its width
 function Region:AnchorSideToParentHorizontal(side, width)
-	return self:AnchorSideToSameSideHorizontal(self:GetParent(), side, width, 0, 0)
+	return self:AnchorSideToSameSideHorizontal(side, self:GetParent(), width, 0, 0)
 end
 
 -- Anchor one side of the region horizontally to the same side of another region with the specified x and y offsets and set its width.
 -- Positive values of x will anchor the region to the right of the other region, negative values will anchor it to the left.
 -- Positive values of y will anchor the region within the other region, negative values will anchor it outside.
-function Region:AnchorSideToSameSideHorizontal(region, side, width, x, y)
+function Region:AnchorSideToSameSideHorizontal(side, region, width, x, y)
 	local top, bottom = "TOP" .. side, "BOTTOM" .. side
 	
 	self:SetPoint(top, region, top, x, -y)
@@ -81,7 +81,7 @@ end
 -- Anchor one side of the region horizontally to the opposite side of another region with the specified x and y offsets and set its width.
 -- Positive values of x will anchor the region to the right of the other region, negative values will anchor it to the left.
 -- Positive values of y will anchor the region within the other region, negative values will anchor it outside.
-function Region:AnchorSideToOppositeSideHorizontal(region, side, width, x, y)
+function Region:AnchorSideToOppositeSideHorizontal(side, region, width, x, y)
 	local oppositeSide = side == "LEFT" and "RIGHT" or "LEFT"
 	
 	self:SetPoint("TOP" .. side, region, "TOP" .. oppositeSide, x, -y)
@@ -106,13 +106,13 @@ end
 
 -- Anchor one side of the region vertically to the same side of its parent and set its width
 function Region:AnchorSideToParentVertical(side, width)
-	return self:AnchorSideToSameSideVertical(self:GetParent(), side, width, 0, 0)
+	return self:AnchorSideToSameSideVertical(side, self:GetParent(), width, 0, 0)
 end
 
 -- Anchor one side of the region vertically to the same side of another region with the specified x and y offsets and set its height.
 -- Positive values of x will anchor the region within the other region, negative values will anchor it outside.
 -- Positive values of y will anchor the region above the other region, negative values will anchor it below.
-function Region:AnchorSideToSameSideVertical(region, side, height, x, y)
+function Region:AnchorSideToSameSideVertical(side, region, height, x, y)
 	local left, right = side .. "LEFT", side .. "RIGHT"
 	
 	self:SetPoint(left, region, left, x, y)
@@ -125,12 +125,12 @@ end
 -- Anchor one side of the region vertically to the opposite side of another region with the specified x and y offsets and set its height.
 -- Positive values of x will anchor the region within the other region, negative values will anchor it outside.
 -- Positive values of y will anchor the region above the other region, negative values will anchor it below.
-function Region:AnchorSideToOppositeSideVertical(region, side, height, x, y)
+function Region:AnchorSideToOppositeSideVertical(side, region, height, x, y)
 	local oppositeSide = side == "TOP" and "BOTTOM" or "TOP"
 	
 	self:SetPoint(side .. "LEFT", region, oppositeSide .. "LEFT", x, y)
 	self:SetPoint(side .. "RIGHT", region, oppositeSide .. "RIGHT", -x, y)
-	self:SetWidth(width)
+	self:SetHeight(height)
 	
 	return self
 end
@@ -140,10 +140,31 @@ end
 ---------------------
 local Texture = CopyMethods(Region, {})
 
+local RotateTexture
+do
+	-- Texture rotation code from Wowpedia: http://wow.gamepedia.com/Applying_affine_transformations_using_SetTexCoord#Simple_rotation_of_square_textures_around_the_center
+	local s2 = sqrt(2)
+	local cos, sin, rad = math.cos, math.sin, math.rad
+	local function CalculateCorner(angle)
+		local r = rad(angle);
+		return 0.5 + cos(r) / s2, 0.5 + sin(r) / s2
+	end
+	
+	function RotateTexture(texture, angle)
+		local LRx, LRy = CalculateCorner(angle + 45)
+		local LLx, LLy = CalculateCorner(angle + 135)
+		local ULx, ULy = CalculateCorner(angle + 225)
+		local URx, URy = CalculateCorner(angle - 45)
+		
+		texture:SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LRx, LRy)
+	end
+end
+
 -- Set whether or not the texture is rotated ninety degrees counter-clockwise
 function Texture:SetRotated(rotated)
 	self.isRotated = rotated
-	self:SetRotation(rotated and NINETY_DEGREES_IN_RADIANS or 0)
+	
+	RotateTexture(self, rotated and 90 or 0)
 end
 
 -------------------
@@ -163,7 +184,7 @@ function Frame:NewTexture(layer, level, textureName)
 	local texture = self:CreateTexture(nil, layer, nil, level)
 	texture:SetTexture(BASE_TEXTURE_PATH .. textureName)
 	
-	(self.parent or self).allTextures[texture] = true
+	;(self.parent or self).allTextures[texture] = true -- Semicolon is required because statement starts with parenthesis and follows function call
 	
 	return CopyMethods(Texture, texture)
 end
@@ -179,6 +200,8 @@ bar.allTextures = {}
 bar:SetFrameStrata("HIGH")
 CopyMethods(Frame, bar)
 
+bar:SetPoint("CENTER")
+
 bar.background = bar:NewTexture("BACKGROUND", 1, "bar_background.tga")
 
 bar.comboPoints = {}
@@ -192,6 +215,7 @@ bar.capLeft = bar:NewTexture("BORDER", 1, "bar_left_cap.tga")
 bar.capRight = bar:NewTexture("BORDER", 1, "bar_right_cap.tga")
 
 local glow = bar:NewFrame("Frame")
+glow:Hide()
 glow.border = glow:NewTexture("BORDER", 1, "glow_borders.tga")
 glow.capLeft = glow:NewTexture("BORDER", 2, "glow_left_cap.tga")
 glow.capRight = glow:NewTexture("BORDER", 2, "glow_right_cap.tga")
@@ -199,7 +223,7 @@ bar.glow = glow
 
 bar.separators = bar:NewFrame("Frame")
 for i = 1, MAX_COMBO_POINTS - 1 do
-	local separator = bar:NewTexture("ARTWORK", 1, "separator.tga")
+	local separator = bar:NewTexture("ARTWORK", 1, "separator_test.tga")
 	separator.index = i
 	bar.separators[i] = separator
 end
@@ -308,7 +332,7 @@ function bar:AnchorComboPointsHorizontal()
 		comboPoint:AnchorSideToOppositeSideHorizontal("LEFT", anchor, comboPointWidth, 0, yOffset)
 		
 		if i < maxComboPoints then
-			separator:AnchorSideToOppositeSideHorizontal("LEFT", comboPoint, 32, -16, 0)
+			separator:AnchorSideToOppositeSideHorizontal("LEFT", comboPoint, 16, -8, 0)
 		end
 	end
 	
@@ -361,7 +385,7 @@ function bar:AnchorComboPointsVertical()
 		comboPoint:AnchorSideToOppositeSideVertical("BOTTOM", anchor, comboPointHeight, xOffset, 0)
 		
 		if i < maxComboPoints then
-			separator:AnchorSideToOppositeSideVertical("BOTTOM", comboPoint, 32, 0, -16)
+			separator:AnchorSideToOppositeSideVertical("BOTTOM", comboPoint, 16, 0, -16)
 		end
 	end
 	
@@ -384,4 +408,8 @@ function bar:UpdateComboPointVisibility()
 	for i = 1, MAX_COMBO_POINTS do
 		comboPoints[i]:SetShown(i <= currentComboPoints)
 	end
+	
+	self.glow:SetShown(currentComboPoints == ClassComboPoints:GetMaxComboPoints())
 end
+
+--bar:SetScale(2.5)

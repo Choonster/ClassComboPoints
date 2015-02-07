@@ -1,4 +1,5 @@
 local ADDON, ClassComboPoints = ...
+_G.ClassComboPoints = ClassComboPoints
 
 ---------------
 -- Constants --
@@ -62,7 +63,7 @@ end
 function events.registry:OnUsed(target, event)
 	target.used[event] = true
 	
-	if not frame:IsEventRegistered() then
+	if not frame:IsEventRegistered(event) then
 		frame:RegisterEvent(event)
 	end
 end
@@ -113,7 +114,7 @@ do
 	end
 	
 	function GetVehicleCurrentComboPoints()
-		return InVehicle and UnitComboPoints("vehicle", "target")
+		return InVehicle and GetComboPoints("vehicle", "target")
 	end
 	
 	function GetVehicleMaxComboPoints()
@@ -138,7 +139,7 @@ if IsComboClass then
 	end
 	
 	function GetClassCurrentComboPoints()
-		return HasComboPoints and UnitComboPoints("player", "target")
+		return HasComboPoints and GetComboPoints("player", "target")
 	end
 	
 	function GetClassMaxComboPoints()
@@ -153,14 +154,20 @@ if IsComboClass then
 	else
 		UpdateHasComboPoints()
 	end
+else
+	function HasClassComboPoints()
+		return false
+	end
 end
 
-function events:UNIT_COMBO_POINTS(unit)
+local function OnComboPointChange()
 	bar:UpdateComboPointVisibility()
 end
 
 -- All classes can have vehicle combo points, only Rogues and Druids can have their own combo points
-events:RegisterUnitEvent("UNIT_COMBO_POINTS", "vehicle", IsComboClass and "player" or nil)
+events.RegisterUnitEvent(COMBO_POINTS, "UNIT_COMBO_POINTS", "vehicle", IsComboClass and "player" or nil, OnComboPointChange)
+
+events.RegisterEvent(COMBO_POINTS, "PLAYER_TARGET_CHANGED", OnComboPointChange)
 
 -----------
 -- Power --
@@ -212,17 +219,30 @@ if IsPowerClass then
 		UpdatePowerType()
 		events.RegisterUnitEvent(POWER, "UNIT_POWER", "player", nil, OnUnitPower)
 	end
+else
+	function HasPower()
+		return false
+	end
 end
 
 ---------------------------
 -- Display Update Events --
 ---------------------------
 
-postEvents:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", function()
+local DISPLAY = "Display"
+
+postEvents.RegisterEvent(DISPLAY, "PLAYER_SPECIALIZATION_CHANGED", function()
 	bar:SetShown(ClassComboPoints:GetMaxComboPoints() > 0)
 	
 	bar:AnchorComboPoints()
 	bar:UpdateComboPointVisibility()
+end)
+
+events.RegisterEvent(DISPLAY, "PLAYER_ENTERING_WORLD", function()
+	events.registry:Fire("PLAYER_SPECIALIZATION_CHANGED")
+	events.UnregisterEvent(DISPLAY, "PLAYER_ENTERING_WORLD")
+	
+	bar:SetHorizontal()
 end)
 
 
@@ -235,29 +255,33 @@ function ClassComboPoints:IsInVehicle()
 end
 
 function ClassComboPoints:GetCurrentComboPoints()
-	local comboPoints
+	local comboPoints, mode
 	
 	if HasVehicle() then
-		comboPoints = GetVehicleCurrentComboPoints()
+		comboPoints, mode = GetVehicleCurrentComboPoints(), "vehicle"
 	elseif HasPower() then
-		comboPoints = GetCurrentPower()
-	elseif HasComboPoints() then
-		comboPoints = GetClassCurrentComboPoints()
+		comboPoints, mode = GetCurrentPower(), "power"
+	elseif HasClassComboPoints() then
+		comboPoints, mode = GetClassCurrentComboPoints(), "combo"
 	end
+	
+	print("GetCurrentComboPoints", comboPoints, mode)
 	
 	return comboPoints or 0
 end
 
 function ClassComboPoints:GetMaxComboPoints()
-	local maxComboPoints
+	local maxComboPoints, mode
 	
 	if HasVehicle() then
-		maxComboPoints = GetVehicleMaxComboPoints()
+		maxComboPoints, mode = GetVehicleMaxComboPoints(), "vehicle"
 	elseif HasPower() then
-		maxComboPoints = GetMaxPower()
-	elseif HasComboPoints() then
-		maxComboPoints = GetClassMaxComboPoints()
+		maxComboPoints, mode = GetMaxPower(), "power"
+	elseif HasClassComboPoints() then
+		maxComboPoints, mode = GetClassMaxComboPoints(), "combo"
 	end
+	
+	print("GetMaxComboPoints", maxComboPoints, mode)
 	
 	return maxComboPoints or 0
 end
