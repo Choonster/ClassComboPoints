@@ -11,4 +11,5 @@ Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 #@end-no-lib-strip@
 
-core.lua
+display.lua
+logic.lua
