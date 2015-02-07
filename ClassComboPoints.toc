@@ -1,0 +1,14 @@
+﻿## Title: Class Combo Points
+## Interface: 60000
+## Notes: Displays a bar for most class resources that behave like combo points.
+## Author: Choonster
+## Version: @project-version@
+## OptionalDeps: CallbackHandler-1.0
+## X-Embeds: CallbackHandler-1.0
+
+#@no-lib-strip@
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+#@end-no-lib-strip@
+
+core.lua
